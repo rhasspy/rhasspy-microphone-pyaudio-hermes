@@ -6,7 +6,6 @@ import threading
 import typing
 import wave
 
-# pylint: disable=E0401
 import pyaudio
 from rhasspyhermes.audioserver import AudioFrame
 
