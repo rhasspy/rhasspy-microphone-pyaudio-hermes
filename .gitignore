@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+.mypy_cache/
+debian/rhasspy-microphone-pyaudio-hermes*
+dist/
+*.egg-info/
+pyinstaller/
