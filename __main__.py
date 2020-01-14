@@ -1,4 +1,4 @@
 """PyInstaller entry point"""
-from rhasspytts_pyaudio_hermes.__main__ import main
+from rhasspymicrophone_pyaudio_hermes.__main__ import main
 
 main()
