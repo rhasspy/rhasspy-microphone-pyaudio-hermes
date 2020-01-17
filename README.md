@@ -1,5 +1,8 @@
 # Rhasspy PyAudio Hermes MQTT Service
 
+[![Continous Integration](https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes/workflows/Tests/badge.svg)](https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes/actions)
+[![GitHub license](https://img.shields.io/github/license/rhasspy/rhasspy-microphone-pyaudio-hermes.svg)](https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes/blob/master/LICENSE)
+
 Records audio from [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) and publishes WAV chunks according to the [Hermes protocol](https://docs.snips.ai/reference/hermes).
 
 ## Running With Docker
