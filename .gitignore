@@ -5,3 +5,4 @@ debian/rhasspy-microphone-pyaudio-hermes*
 dist/
 *.egg-info/
 pyinstaller/
+.vscode/

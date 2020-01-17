@@ -3,8 +3,9 @@ PYTHON_NAME = rhasspymicrophone_pyaudio_hermes
 PACKAGE_NAME = rhasspy-microphone-pyaudio-hermes
 SOURCE = $(PYTHON_NAME)
 PYTHON_FILES = $(SOURCE)/*.py setup.py
+SHELL_FILES = bin/* debian/bin/*
 
-.PHONY: check venv dist sdist pyinstaller debian docker deploy
+.PHONY: reformat check venv dist sdist pyinstaller debian docker deploy
 
 version := $(shell cat VERSION)
 architecture := $(shell bash architecture.sh)
@@ -16,12 +17,18 @@ debian_dir := debian/$(debian_package)
 # Python
 # -----------------------------------------------------------------------------
 
+reformat:
+	black .
+	isort $(PYTHON_FILES)
+
 check:
 	flake8 $(PYTHON_FILES)
 	pylint $(PYTHON_FILES)
 	mypy $(PYTHON_FILES)
-	isort $(PYTHON_FILES)
-	black .
+	black --check .
+	isort --check-only $(PYTHON_FILES)
+	bashate $(SHELL_FILES)
+	yamllint .
 	pip list --outdated
 
 venv:
