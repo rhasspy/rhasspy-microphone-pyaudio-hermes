@@ -15,10 +15,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v1
+      - name: Install dependencies on Ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: apt install portaudio19-dev        
       - name: Install dependencies on macOS
         if: startsWith(matrix.os, 'macos')
         run: |
-          brew install fakeroot dpkg
+          brew install fakeroot dpkg portaudio
           brew link --force gettext
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
