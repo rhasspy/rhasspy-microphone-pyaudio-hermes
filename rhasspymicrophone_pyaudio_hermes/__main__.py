@@ -74,6 +74,7 @@ def main():
 
         # Connect
         client.on_connect = hermes.on_connect
+        client.on_message = hermes.on_message
         client.on_disconnect = on_disconnect
 
         _LOGGER.debug("Connecting to %s:%s", args.host, args.port)
