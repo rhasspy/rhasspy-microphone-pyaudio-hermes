@@ -110,7 +110,7 @@ class MicrophoneHermesMqtt:
                 device_info = audio.get_device_info_by_index(device_index)
                 device_name = device_info.get("name")
                 if device_name == default_name:
-                    device_name = device_name + "*"
+                    device_name += "*"
 
                 try:
                     _LOGGER.debug(
