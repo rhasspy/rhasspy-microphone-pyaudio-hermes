@@ -88,8 +88,13 @@ class MicrophoneHermesMqtt:
         except Exception:
             _LOGGER.exception("record")
 
-    def handle_get_devices(self, get_devices: AudioGetDevices) -> AudioDevices:
+    def handle_get_devices(
+        self, get_devices: AudioGetDevices
+    ) -> typing.Optional[AudioDevices]:
         """Get available microphones and optionally test them."""
+        if get_devices.modes and (AudioDeviceMode.INPUT not in get_devices.modes):
+            return None
+
         devices: typing.List[AudioDevice] = []
 
         try:
@@ -194,7 +199,8 @@ class MicrophoneHermesMqtt:
                     result = self.handle_get_devices(
                         AudioGetDevices.from_dict(json_payload)
                     )
-                    self.publish(result)
+                    if result:
+                        self.publish(result)
         except Exception:
             _LOGGER.exception("on_message")
 
