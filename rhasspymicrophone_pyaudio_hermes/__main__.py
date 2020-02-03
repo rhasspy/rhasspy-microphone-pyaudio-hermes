@@ -1,8 +1,6 @@
 """Hermes MQTT service for Rhasspy TTS with PyAudio."""
 import argparse
-import json
 import logging
-import sys
 
 import paho.mqtt.client as mqtt
 
@@ -13,15 +11,8 @@ _LOGGER = logging.getLogger(__name__)
 
 def main():
     """Main method."""
-    parser = argparse.ArgumentParser(prog="rhasspy-microphone-cli-hermes")
-    parser.add_argument(
-        "--list-devices",
-        action="store_true",
-        help="List available microphones and exit",
-    )
-    parser.add_argument(
-        "--device-index", help="Index of microphone to use (see --list-devices)"
-    )
+    parser = argparse.ArgumentParser(prog="rhasspy-microphone-pyaudio-hermes")
+    parser.add_argument("--device-index", help="Index of microphone to use")
     parser.add_argument(
         "--sample-rate",
         type=int,
@@ -60,17 +51,6 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     _LOGGER.debug(args)
-
-    if args.list_devices:
-        _LOGGER.debug("Testing microphones")
-
-        # List available microphones and exit
-        result = MicrophoneHermesMqtt.test_microphones(
-            args.sample_rate, args.sample_width, args.channels
-        )
-        json.dump(result, sys.stdout, indent=4)
-        print("")
-        return
 
     try:
         # Listen for messages

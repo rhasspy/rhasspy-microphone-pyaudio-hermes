@@ -1,13 +1,22 @@
 """Hermes MQTT server for Rhasspy TTS using external program"""
 import audioop
 import io
+import json
 import logging
 import threading
 import typing
 import wave
 
+import attr
 import pyaudio
-from rhasspyhermes.audioserver import AudioFrame
+from rhasspyhermes.audioserver import (
+    AudioDevice,
+    AudioDeviceMode,
+    AudioDevices,
+    AudioFrame,
+    AudioGetDevices,
+)
+from rhasspyhermes.base import Message
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,32 +88,13 @@ class MicrophoneHermesMqtt:
         except Exception:
             _LOGGER.exception("record")
 
-    # -------------------------------------------------------------------------
+    def handle_get_devices(self, get_devices: AudioGetDevices) -> AudioDevices:
+        """Get available microphones and optionally test them."""
+        devices: typing.List[AudioDevice] = []
 
-    def on_connect(self, client, userdata, flags, rc):
-        """Connected to MQTT broker."""
         try:
-            threading.Thread(target=self.record, daemon=True).start()
-        except Exception:
-            _LOGGER.exception("on_connect")
+            audio = pyaudio.PyAudio()
 
-    # -------------------------------------------------------------------------
-
-    @classmethod
-    def test_microphones(
-        cls,
-        sample_rate: int,
-        sample_width: int,
-        channels: int,
-        audio: typing.Optional[pyaudio.PyAudio] = None,
-        chunk_size: int = 2048,
-    ) -> typing.Dict[int, str]:
-        """Tests available microhones and returns results"""
-        # Thanks to the speech_recognition library!
-        # https://github.com/Uberi/speech_recognition/blob/master/speech_recognition/__init__.py
-        result = {}
-        audio = audio or pyaudio.PyAudio()
-        try:
             default_name = audio.get_default_input_device_info().get("name")
             for device_index in range(audio.get_device_count()):
                 device_info = audio.get_device_info_by_index(device_index)
@@ -112,46 +102,115 @@ class MicrophoneHermesMqtt:
                 if device_name == default_name:
                     device_name += "*"
 
-                try:
-                    _LOGGER.debug(
-                        "Testing %s (%s) with (rate=%s, width=%s, chananels=%s)",
-                        device_name,
-                        device_index,
-                        sample_rate,
-                        sample_width,
-                        channels,
+                working: typing.Optional[bool] = None
+                if get_devices.test:
+                    working = self.get_microphone_working(
+                        device_name, device_index, audio
                     )
 
-                    # read audio
-                    pyaudio_stream = audio.open(
-                        input_device_index=device_index,
-                        channels=channels,
-                        format=audio.get_format_from_width(sample_width),
-                        rate=sample_rate,
-                        input=True,
+                devices.append(
+                    AudioDevice(
+                        mode=AudioDeviceMode.INPUT,
+                        id=str(device_index),
+                        name=device_name,
+                        description="",
+                        working=working,
                     )
-                    try:
-                        buffer = pyaudio_stream.read(chunk_size)
-                        if not pyaudio_stream.is_stopped():
-                            pyaudio_stream.stop_stream()
-                    finally:
-                        pyaudio_stream.close()
-                except Exception:
-                    result[device_index] = f"{device_name} (error)"
-                    continue
-
-                # compute RMS of debiased audio
-                energy = -audioop.rms(buffer, 2)
-                energy_bytes = bytes([energy & 0xFF, (energy >> 8) & 0xFF])
-                debiased_energy = audioop.rms(
-                    audioop.add(buffer, energy_bytes * (len(buffer) // 2), 2), 2
                 )
-
-                if debiased_energy > 30:  # probably actually audio
-                    result[device_index] = f"{device_name} (working!)"
-                else:
-                    result[device_index] = f"{device_name} (no sound)"
+        except Exception:
+            _LOGGER.exception("handle_get_devices")
         finally:
             audio.terminate()
 
-        return result
+        return AudioDevices(
+            devices=devices, id=get_devices.id, siteId=get_devices.siteId
+        )
+
+    def get_microphone_working(
+        self,
+        device_name: str,
+        device_index: int,
+        audio: pyaudio.PyAudio,
+        chunk_size: int = 1024,
+    ) -> bool:
+        """Record some audio from a microphone and check its energy."""
+        try:
+            # read audio
+            pyaudio_stream = audio.open(
+                input_device_index=device_index,
+                channels=self.channels,
+                format=audio.get_format_from_width(self.sample_width),
+                rate=self.sample_rate,
+                input=True,
+            )
+
+            try:
+                buffer = pyaudio_stream.read(chunk_size)
+                if not pyaudio_stream.is_stopped():
+                    pyaudio_stream.stop_stream()
+            finally:
+                pyaudio_stream.close()
+
+            # compute RMS of debiased audio
+            # Thanks to the speech_recognition library!
+            # https://github.com/Uberi/speech_recognition/blob/master/speech_recognition/__init__.py
+            energy = -audioop.rms(buffer, 2)
+            energy_bytes = bytes([energy & 0xFF, (energy >> 8) & 0xFF])
+            debiased_energy = audioop.rms(
+                audioop.add(buffer, energy_bytes * (len(buffer) // 2), 2), 2
+            )
+
+            # probably actually audio
+            return debiased_energy > 30
+        except Exception:
+            _LOGGER.exception("get_microphone_working ({device_name})")
+            pass
+
+        return False
+
+    # -------------------------------------------------------------------------
+
+    def on_connect(self, client, userdata, flags, rc):
+        """Connected to MQTT broker."""
+        try:
+            topics = [AudioGetDevices.topic()]
+
+            for topic in topics:
+                self.client.subscribe(topic)
+                _LOGGER.debug("Subscribed to %s", topic)
+
+            threading.Thread(target=self.record, daemon=True).start()
+        except Exception:
+            _LOGGER.exception("on_connect")
+
+    def on_message(self, client, userdata, msg):
+        """Received message from MQTT broker."""
+        try:
+            _LOGGER.debug("Received %s byte(s) on %s", len(msg.payload), msg.topic)
+
+            if msg.topic == AudioGetDevices.topic():
+                json_payload = json.loads(msg.payload)
+                if self._check_siteId(json_payload):
+                    result = self.handle_get_devices(
+                        AudioGetDevices.from_dict(json_payload)
+                    )
+                    self.publish(result)
+        except Exception:
+            _LOGGER.exception("on_message")
+
+    def publish(self, message: Message, **topic_args):
+        """Publish a Hermes message to MQTT."""
+        try:
+            assert self.client
+            topic = message.topic(**topic_args)
+
+            _LOGGER.debug("-> %s", message)
+            payload: typing.Union[str, bytes] = json.dumps(attr.asdict(message))
+
+            _LOGGER.debug("Publishing %s char(s) to %s", len(payload), topic)
+            self.client.publish(topic, payload)
+        except Exception:
+            _LOGGER.exception("on_message")
+
+    def _check_siteId(self, json_payload: typing.Dict[str, typing.Any]) -> bool:
+        return json_payload.get("siteId", "default") == self.siteId
