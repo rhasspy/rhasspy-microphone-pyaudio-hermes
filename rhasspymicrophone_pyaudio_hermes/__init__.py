@@ -33,6 +33,7 @@ class MicrophoneHermesMqtt:
         device_index: typing.Optional[int] = None,
         chunk_size: int = 2048,
         siteId: str = "default",
+        output_siteId: typing.Optional[str] = None,
     ):
         self.client = client
         self.sample_rate = sample_rate
@@ -41,8 +42,9 @@ class MicrophoneHermesMqtt:
         self.device_index = device_index
         self.frames_per_buffer = chunk_size // sample_width
         self.siteId = siteId
+        self.output_siteId = output_siteId or siteId
 
-        self.audioframe_topic: str = AudioFrame.topic(siteId=self.siteId)
+        self.audioframe_topic: str = AudioFrame.topic(siteId=self.output_siteId)
 
     # -------------------------------------------------------------------------
 
