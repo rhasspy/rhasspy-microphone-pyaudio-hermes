@@ -6,6 +6,7 @@ import logging
 import threading
 import typing
 import wave
+from queue import Queue
 
 import attr
 import pyaudio
@@ -44,6 +45,8 @@ class MicrophoneHermesMqtt:
         self.siteId = siteId
         self.output_siteId = output_siteId or siteId
 
+        self.chunk_queue: Queue = Queue()
+
         self.audioframe_topic: str = AudioFrame.topic(siteId=self.output_siteId)
 
     # -------------------------------------------------------------------------
@@ -70,25 +73,34 @@ class MicrophoneHermesMqtt:
                 # Read frames and publish as MQTT WAV chunks
                 while True:
                     chunk = mic.read(self.frames_per_buffer)
-                    if chunk:
-                        with io.BytesIO() as wav_buffer:
-                            wav_file: wave.Wave_write = wave.open(wav_buffer, "wb")
-                            with wav_file:
-                                wav_file.setframerate(self.sample_rate)
-                                wav_file.setsampwidth(self.sample_width)
-                                wav_file.setnchannels(self.channels)
-                                wav_file.writeframes(chunk)
-
-                            # Publish to audioFrame topic
-                            self.client.publish(
-                                self.audioframe_topic, wav_buffer.getvalue()
-                            )
+                    self.chunk_queue.put(chunk)
             finally:
                 mic.stop_stream()
                 audio.terminate()
 
         except Exception:
             _LOGGER.exception("record")
+
+    def publish_chunks(self):
+        """Publish audio chunks to MQTT."""
+        try:
+            while True:
+                chunk = self.chunk_queue.get()
+                if chunk:
+                    with io.BytesIO() as wav_buffer:
+                        wav_file: wave.Wave_write = wave.open(wav_buffer, "wb")
+                        with wav_file:
+                            wav_file.setframerate(self.sample_rate)
+                            wav_file.setsampwidth(self.sample_width)
+                            wav_file.setnchannels(self.channels)
+                            wav_file.writeframes(chunk)
+
+                        # Publish to audioFrame topic
+                        self.client.publish(
+                            self.audioframe_topic, wav_buffer.getvalue()
+                        )
+        except Exception:
+            _LOGGER.exception("publish_chunks")
 
     def handle_get_devices(
         self, get_devices: AudioGetDevices
@@ -186,6 +198,7 @@ class MicrophoneHermesMqtt:
                 self.client.subscribe(topic)
                 _LOGGER.debug("Subscribed to %s", topic)
 
+            threading.Thread(target=self.publish_chunks, daemon=True).start()
             threading.Thread(target=self.record, daemon=True).start()
         except Exception:
             _LOGGER.exception("on_connect")
