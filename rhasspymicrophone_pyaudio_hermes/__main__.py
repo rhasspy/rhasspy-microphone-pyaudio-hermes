@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 def main():
     """Main method."""
     parser = argparse.ArgumentParser(prog="rhasspy-microphone-pyaudio-hermes")
-    parser.add_argument("--device-index", help="Index of microphone to use")
+    parser.add_argument("--device-index", type=int, help="Index of microphone to use")
     parser.add_argument(
         "--sample-rate",
         type=int,
