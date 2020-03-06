@@ -3,6 +3,7 @@ import audioop
 import io
 import json
 import logging
+import socket
 import threading
 import typing
 import wave
@@ -10,6 +11,7 @@ from queue import Queue
 
 import attr
 import pyaudio
+from rhasspyhermes.asr import AsrStartListening, AsrStopListening
 from rhasspyhermes.audioserver import (
     AudioDevice,
     AudioDeviceMode,
@@ -35,6 +37,7 @@ class MicrophoneHermesMqtt:
         chunk_size: int = 2048,
         siteId: str = "default",
         output_siteId: typing.Optional[str] = None,
+        udp_audio_port: typing.Optional[int] = None,
     ):
         self.client = client
         self.sample_rate = sample_rate
@@ -44,6 +47,10 @@ class MicrophoneHermesMqtt:
         self.frames_per_buffer = chunk_size // sample_width
         self.siteId = siteId
         self.output_siteId = output_siteId or siteId
+
+        self.udp_audio_port = udp_audio_port
+        self.udp_output = False
+        self.udp_socket: typing.Optional[socket.socket] = None
 
         self.chunk_queue: Queue = Queue()
 
@@ -82,11 +89,14 @@ class MicrophoneHermesMqtt:
             _LOGGER.exception("record")
 
     def publish_chunks(self):
-        """Publish audio chunks to MQTT."""
+        """Publish audio chunks to MQTT or UDP."""
         try:
+            udp_dest = ("127.0.0.1", self.udp_audio_port)
+
             while True:
                 chunk = self.chunk_queue.get()
                 if chunk:
+                    # MQTT output
                     with io.BytesIO() as wav_buffer:
                         wav_file: wave.Wave_write = wave.open(wav_buffer, "wb")
                         with wav_file:
@@ -95,10 +105,15 @@ class MicrophoneHermesMqtt:
                             wav_file.setnchannels(self.channels)
                             wav_file.writeframes(chunk)
 
-                        # Publish to audioFrame topic
-                        self.client.publish(
-                            self.audioframe_topic, wav_buffer.getvalue()
-                        )
+                        if self.udp_output:
+                            # UDP output
+                            wav_bytes = wav_buffer.getvalue()
+                            self.udp_socket.sendto(wav_bytes, udp_dest)
+                        else:
+                            # Publish to audioFrame topic
+                            self.client.publish(
+                                self.audioframe_topic, wav_buffer.getvalue()
+                            )
         except Exception:
             _LOGGER.exception("publish_chunks")
 
@@ -194,6 +209,14 @@ class MicrophoneHermesMqtt:
         try:
             topics = [AudioGetDevices.topic()]
 
+            if self.udp_audio_port is not None:
+                self.udp_output = True
+                self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                _LOGGER.debug(
+                    "Audio will also be sent to UDP port %s", self.udp_audio_port
+                )
+                topics.extend([AsrStartListening.topic(), AsrStopListening.topic()])
+
             for topic in topics:
                 self.client.subscribe(topic)
                 _LOGGER.debug("Subscribed to %s", topic)
@@ -216,6 +239,20 @@ class MicrophoneHermesMqtt:
                     )
                     if result:
                         self.publish(result)
+            elif msg.topic == AsrStartListening.topic():
+                json_payload = json.loads(msg.payload)
+                if (self.udp_audio_port is not None) and self._check_siteId(
+                    json_payload
+                ):
+                    self.udp_output = False
+                    _LOGGER.debug("Enable UDP output")
+            elif msg.topic == AsrStopListening.topic():
+                json_payload = json.loads(msg.payload)
+                if (self.udp_audio_port is not None) and self._check_siteId(
+                    json_payload
+                ):
+                    self.udp_output = True
+                    _LOGGER.debug("Disable UDP output")
         except Exception:
             _LOGGER.exception("on_message")
 
