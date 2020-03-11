@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import socket
+import time
 import threading
 import typing
 import wave
@@ -80,7 +81,11 @@ class MicrophoneHermesMqtt:
                 # Read frames and publish as MQTT WAV chunks
                 while True:
                     chunk = mic.read(self.frames_per_buffer)
-                    self.chunk_queue.put(chunk)
+                    if chunk:
+                        self.chunk_queue.put(chunk)
+                    else:
+                        # Avoid 100% CPU
+                        time.sleep(0.01)
             finally:
                 mic.stop_stream()
                 audio.terminate()
