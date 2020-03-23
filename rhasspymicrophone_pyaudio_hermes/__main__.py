@@ -59,7 +59,7 @@ def main():
             args.sample_width,
             args.channels,
             device_index=args.device_index,
-            siteId=args.siteId,
+            siteIds=args.siteId,
             output_siteId=args.output_siteId,
             udp_audio_port=args.udp_audio_port,
             loop=loop,

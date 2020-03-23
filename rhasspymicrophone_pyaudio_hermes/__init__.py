@@ -36,7 +36,7 @@ class MicrophoneHermesMqtt(HermesClient):
         channels: int,
         device_index: typing.Optional[int] = None,
         chunk_size: int = 2048,
-        siteId: str = "default",
+        siteIds: typing.Optional[typing.List[str]] = None,
         output_siteId: typing.Optional[str] = None,
         udp_audio_port: typing.Optional[int] = None,
         loop=None,
@@ -47,7 +47,7 @@ class MicrophoneHermesMqtt(HermesClient):
             sample_rate=sample_rate,
             sample_width=sample_width,
             channels=channels,
-            siteIds=[siteId],
+            siteIds=siteIds,
             loop=loop,
         )
 
@@ -58,8 +58,7 @@ class MicrophoneHermesMqtt(HermesClient):
         self.channels = channels
         self.device_index = device_index
         self.frames_per_buffer = chunk_size // sample_width
-        self.siteId = siteId
-        self.output_siteId = output_siteId or siteId
+        self.output_siteId = output_siteId or self.siteId
 
         self.udp_audio_port = udp_audio_port
         self.udp_output = False
