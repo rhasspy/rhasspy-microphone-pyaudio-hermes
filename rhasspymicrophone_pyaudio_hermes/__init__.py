@@ -17,6 +17,7 @@ from rhasspyhermes.audioserver import (
     AudioDevices,
     AudioFrame,
     AudioGetDevices,
+    AudioRecordError,
     AudioSummary,
     SummaryToggleOff,
     SummaryToggleOn,
@@ -121,8 +122,15 @@ class MicrophoneHermesMqtt(HermesClient):
                 mic.stop_stream()
                 audio.terminate()
 
-        except Exception:
+        except Exception as e:
             _LOGGER.exception("record")
+            self.publish(
+                AudioRecordError(
+                    error=str(e),
+                    context=f"Device index: {self.device_index}",
+                    siteId=self.output_siteId,
+                )
+            )
 
     def publish_chunks(self):
         """Publish audio chunks to MQTT or UDP."""
@@ -192,12 +200,17 @@ class MicrophoneHermesMqtt(HermesClient):
                             siteId=self.output_siteId,
                         )
 
-        except Exception:
+        except Exception as e:
             _LOGGER.exception("publish_chunks")
+            self.publish(
+                AudioRecordError(
+                    error=str(e), context="publish_chunks", siteId=self.siteId
+                )
+            )
 
     async def handle_get_devices(
         self, get_devices: AudioGetDevices
-    ) -> typing.AsyncIterable[AudioDevices]:
+    ) -> typing.AsyncIterable[typing.Union[AudioDevices, AudioRecordError]]:
         """Get available microphones and optionally test them."""
         if get_devices.modes and (AudioDeviceMode.INPUT not in get_devices.modes):
             _LOGGER.debug("Not a request for input devices")
@@ -230,8 +243,11 @@ class MicrophoneHermesMqtt(HermesClient):
                         working=working,
                     )
                 )
-        except Exception:
+        except Exception as e:
             _LOGGER.exception("handle_get_devices")
+            yield AudioRecordError(
+                error=str(e), context=get_devices.id, siteId=get_devices.siteId
+            )
         finally:
             audio.terminate()
 
