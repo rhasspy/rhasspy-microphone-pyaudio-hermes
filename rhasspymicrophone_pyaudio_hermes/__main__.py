@@ -34,7 +34,7 @@ def main():
         help="Number of channels in recorded audio (e.g., 1)",
     )
     parser.add_argument(
-        "--output-siteId", help="If set, output audio data to a different siteId"
+        "--output-site-id", help="If set, output audio data to a different site id"
     )
     parser.add_argument(
         "--udp-audio-port",
@@ -56,8 +56,8 @@ def main():
         args.sample_width,
         args.channels,
         device_index=args.device_index,
-        siteIds=args.siteId,
-        output_siteId=args.output_siteId,
+        site_ids=args.site_id,
+        output_site_id=args.output_site_id,
         udp_audio_port=args.udp_audio_port,
     )
 
