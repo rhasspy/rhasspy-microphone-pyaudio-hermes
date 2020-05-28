@@ -25,7 +25,7 @@ from rhasspyhermes.audioserver import (
 from rhasspyhermes.base import Message
 from rhasspyhermes.client import GeneratorType, HermesClient
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("rhasspymicrophone_pyaudio_hermes")
 
 
 class MicrophoneHermesMqtt(HermesClient):

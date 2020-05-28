@@ -8,7 +8,7 @@ import rhasspyhermes.cli as hermes_cli
 
 from . import MicrophoneHermesMqtt
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("rhasspymicrophone_pyaudio_hermes")
 
 
 def main():
