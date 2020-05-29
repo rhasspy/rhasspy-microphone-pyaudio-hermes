@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import logging
+import sys
 
 import paho.mqtt.client as mqtt
 import rhasspyhermes.cli as hermes_cli
@@ -14,24 +15,22 @@ _LOGGER = logging.getLogger("rhasspymicrophone_pyaudio_hermes")
 def main():
     """Main method."""
     parser = argparse.ArgumentParser(prog="rhasspy-microphone-pyaudio-hermes")
+    parser.add_argument(
+        "--list-devices", action="store_true", help="List available input devices"
+    )
     parser.add_argument("--device-index", type=int, help="Index of microphone to use")
     parser.add_argument(
         "--sample-rate",
         type=int,
-        required=True,
         help="Sample rate of recorded audio in hertz (e.g., 16000)",
     )
     parser.add_argument(
         "--sample-width",
         type=int,
-        required=True,
         help="Sample width of recorded audio in bytes (e.g., 2)",
     )
     parser.add_argument(
-        "--channels",
-        type=int,
-        required=True,
-        help="Number of channels in recorded audio (e.g., 1)",
+        "--channels", type=int, help="Number of channels in recorded audio (e.g., 1)"
     )
     parser.add_argument(
         "--output-site-id", help="If set, output audio data to a different site id"
@@ -52,6 +51,20 @@ def main():
 
     hermes_cli.setup_logging(args)
     _LOGGER.debug(args)
+
+    if args.list_devices:
+        # List available input devices and exit
+        list_devices()
+        return
+
+    # Verify arguments
+    if not args.list_devices and (
+        (args.sample_rate is None)
+        or (args.sample_width is None)
+        or (args.channels is None)
+    ):
+        _LOGGER.fatal("--sample-rate, --sample-width, and --channels are required")
+        sys.exit(1)
 
     # Listen for messages
     client = mqtt.Client()
@@ -79,6 +92,22 @@ def main():
     finally:
         _LOGGER.debug("Shutting down")
         client.loop_stop()
+
+
+# -----------------------------------------------------------------------------
+
+
+def list_devices():
+    """Prints available input devices."""
+    import pyaudio
+
+    audio = pyaudio.PyAudio()
+
+    print("index\tname")
+    for device_index in range(audio.get_device_count()):
+        device_info = audio.get_device_info_by_index(device_index)
+        device_name = device_info.get("name")
+        print(f"{device_index}\t{device_name}")
 
 
 # -----------------------------------------------------------------------------

@@ -46,10 +46,11 @@ NOTE: If you add things to the Docker image, make sure to whitelist them in `.do
 ## Command-Line Options
 
 ```
-usage: rhasspy-microphone-pyaudio-hermes [-h] [--device-index DEVICE_INDEX]
-                                         --sample-rate SAMPLE_RATE
-                                         --sample-width SAMPLE_WIDTH
-                                         --channels CHANNELS
+usage: rhasspy-microphone-pyaudio-hermes [-h] [--list-devices]
+                                         [--device-index DEVICE_INDEX]
+                                         [--sample-rate SAMPLE_RATE]
+                                         [--sample-width SAMPLE_WIDTH]
+                                         [--channels CHANNELS]
                                          [--output-site-id OUTPUT_SITE_ID]
                                          [--udp-audio-host UDP_AUDIO_HOST]
                                          [--udp-audio-port UDP_AUDIO_PORT]
@@ -61,6 +62,7 @@ usage: rhasspy-microphone-pyaudio-hermes [-h] [--device-index DEVICE_INDEX]
 
 optional arguments:
   -h, --help            show this help message and exit
+  --list-devices        List available input devices
   --device-index DEVICE_INDEX
                         Index of microphone to use
   --sample-rate SAMPLE_RATE
