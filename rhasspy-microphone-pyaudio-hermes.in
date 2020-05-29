@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+in_place="@IN_PLACE@"
+
+if [[ "${in_place}" == 'yes' ]]; then
+    # Run directly from source code
+    this_dir="$( cd "$( dirname "$0" )" && pwd )"
+    "${this_dir}/bin/rhasspy-microphone-pyaudio-hermes" "$@"
+else
+    # Use virtual environment as a prefix
+    prefix="@prefix@"
+    virtualenv="@VIRTUALENV@"
+
+    if [[ "${virtualenv}" = 'yes' ]]; then
+        echo "Using virtual environment at ${prefix}" >&2
+
+        # Use virtual environment
+        source "${prefix}/bin/activate"
+    fi
+
+    export PATH="${prefix}/bin:${PATH}"
+
+    rhasspy-microphone-pyaudio-hermes "$@"
+fi

@@ -7,4 +7,8 @@ dist/
 pyinstaller/
 .vscode/
 download/
-etc/qemu-*
+
+/autom4te.cache/
+/Makefile
+/rhasspy-microphone-pyaudio-hermes
+/config.status
