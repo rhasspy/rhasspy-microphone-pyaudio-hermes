@@ -1,6 +1,20 @@
 *
-!pyinstaller/dist
-!debian/bin
+
+# Autoconf
+!aclocal.m4
+!configure
+!config.sub
+!config.guess
+!install-sh
+!missing
+!m4/
+!Makefile.in
+!rhasspy-microphone-pyaudio-hermes.in
+
 !requirements.txt
+!setup.py
+!VERSION
+!README.md
+!LICENSE
+
 !rhasspymicrophone_pyaudio_hermes/*.py
-!etc/

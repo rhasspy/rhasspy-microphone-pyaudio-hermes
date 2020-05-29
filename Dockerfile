@@ -1,42 +1,53 @@
-ARG BUILD_ARCH
-FROM ${BUILD_ARCH}/python:3.7-alpine as build
-ARG BUILD_ARCH
-ARG FRIENDLY_ARCH
+FROM ubuntu:eoan as build
 
-# Multi-arch
-COPY etc/qemu-arm-static /usr/bin/
-COPY etc/qemu-aarch64-static /usr/bin/
+ENV LANG C.UTF-8
 
-RUN apk update && apk add --no-cache build-base portaudio-dev
-RUN python3 -m venv /venv
+RUN apt-get update && \
+    apt-get install --no-install-recommends --yes \
+        python3 python3-dev python3-setuptools python3-pip python3-venv \
+        build-essential portaudio19-dev
 
-COPY requirements.txt /
+ENV APP_DIR=/usr/lib/rhasspy-microphone-pyaudio-hermes
+ENV BUILD_DIR=/build
 
-RUN grep '^rhasspy-' /requirements.txt | \
-    sed -e 's|=.\+|/archive/master.tar.gz|' | \
-    sed 's|^|https://github.com/rhasspy/|' \
-    > /requirements_rhasspy.txt
+# Directory of prebuilt tools
+COPY download/ ${BUILD_DIR}/download/
 
-RUN /venv/bin/pip install --upgrade pip
-RUN /venv/bin/pip install -r /requirements_rhasspy.txt
-RUN /venv/bin/pip install -r /requirements.txt
+# Copy source
+COPY rhasspymicrophone_pyaudio_hermes/ ${BUILD_DIR}/rhasspymicrophone_pyaudio_hermes/
+
+# Autoconf
+COPY m4/ ${BUILD_DIR}/m4/
+COPY configure config.sub config.guess \
+     install-sh missing aclocal.m4 \
+     Makefile.in setup.py requirements.txt rhasspy-microphone-pyaudio-hermes.in \
+     ${BUILD_DIR}/
+
+RUN cd ${BUILD_DIR} && \
+    ./configure --prefix=${APP_DIR}
+
+COPY VERSION README.md LICENSE ${BUILD_DIR}/
+
+RUN cd ${BUILD_DIR} && \
+    make && \
+    make install
+
+# Strip binaries and shared libraries
+RUN (find ${APP_DIR} -type f \( -name '*.so*' -or -executable \) -print0 | xargs -0 strip --strip-unneeded -- 2>/dev/null) || true
 
 # -----------------------------------------------------------------------------
 
-ARG BUILD_ARCH
-FROM ${BUILD_ARCH}/python:3.7-alpine
-ARG BUILD_ARCH
-ARG FRIENDLY_ARCH
+FROM ubuntu:eoan as run
 
-RUN apk update && apk add --no-cache portaudio
+ENV LANG C.UTF-8
 
-# Multi-arch
-COPY etc/qemu-arm-static /usr/bin/
-COPY etc/qemu-aarch64-static /usr/bin/
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends \
+        python3 libpython3.7 \
+        libportaudio2
 
-COPY --from=build /venv/ /venv/
+ENV APP_DIR=/usr/lib/rhasspy-microphone-pyaudio-hermes
+COPY --from=build ${APP_DIR}/ ${APP_DIR}/
+COPY --from=build /build/rhasspy-microphone-pyaudio-hermes /usr/bin/
 
-COPY rhasspymicrophone_pyaudio_hermes/ /rhasspymicrophone_pyaudio_hermes/
-WORKDIR /
-
-ENTRYPOINT ["/venv/bin/python3", "-m", "rhasspymicrophone_pyaudio_hermes"]
+ENTRYPOINT ["bash", "/usr/bin/rhasspy-microphone-pyaudio-hermes"]

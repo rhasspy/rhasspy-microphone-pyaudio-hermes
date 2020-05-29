@@ -8,7 +8,7 @@ Records audio from [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) and p
 ## Running With Docker
 
 ```bash
-docker run -it rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION> <ARGS>
+$ docker run -it rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION> <ARGS>
 ```
 
 ## Building From Source
@@ -16,36 +16,28 @@ docker run -it rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION> <ARGS>
 Clone the repository and create the virtual environment:
 
 ```bash
-git clone https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes.git
-cd rhasspy-microphone-pyaudio-hermes
-make venv
+$ git clone https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes.git
+$ cd rhasspy-microphone-pyaudio-hermes
+$ ./configure --enable-in-place
+$ make
+$ make install
 ```
 
-Run the `bin/rhasspy-microphone-pyaudio-hermes` script to access the command-line interface:
+Run the `rhasspy-microphone-pyaudio-hermes` script to access the command-line interface:
 
 ```bash
-bin/rhasspy-microphone-pyaudio-hermes --help
+$ ./rhasspy-microphone-pyaudio-hermes --help
 ```
-
-## Building the Debian Package
-
-Follow the instructions to build from source, then run:
-
-```bash
-source .venv/bin/activate
-make debian
-```
-
-If successful, you'll find a `.deb` file in the `dist` directory that can be installed with `apt`.
 
 ## Building the Docker Image
 
-Follow the instructions to build from source, then run:
+Run `scripts/build-docker.sh` with a local docker registry:
 
 ```bash
-source .venv/bin/activate
-make docker
+$ DOCKER_REGISTRY=myregistry:12345 scripts/build-docker.sh
 ```
+
+Requires [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/). Set `PLATFORMS` environment to only build for specific platforms (e.g., `linux/amd64`).
 
 This will create a Docker image tagged `rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION>` where `VERSION` comes from the file of the same name in the source root directory.
 
@@ -54,25 +46,40 @@ NOTE: If you add things to the Docker image, make sure to whitelist them in `.do
 ## Command-Line Options
 
 ```
-usage: rhasspy-microphone-cli-hermes [-h] [--list-devices]
-                                     [--device-index DEVICE_INDEX]
-                                     --sample-rate SAMPLE_RATE --sample-width
-                                     SAMPLE_WIDTH --channels CHANNELS
-                                     [--host HOST] [--port PORT]
-                                     [--siteId SITEID] [--debug]
+usage: rhasspy-microphone-pyaudio-hermes [-h] [--device-index DEVICE_INDEX]
+                                         --sample-rate SAMPLE_RATE
+                                         --sample-width SAMPLE_WIDTH
+                                         --channels CHANNELS
+                                         [--output-site-id OUTPUT_SITE_ID]
+                                         [--udp-audio-host UDP_AUDIO_HOST]
+                                         [--udp-audio-port UDP_AUDIO_PORT]
+                                         [--host HOST] [--port PORT]
+                                         [--username USERNAME]
+                                         [--password PASSWORD]
+                                         [--site-id SITE_ID] [--debug]
+                                         [--log-format LOG_FORMAT]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --list-devices        List available microphones and exit
   --device-index DEVICE_INDEX
-                        Index of microphone to use (see --list-devices)
+                        Index of microphone to use
   --sample-rate SAMPLE_RATE
                         Sample rate of recorded audio in hertz (e.g., 16000)
   --sample-width SAMPLE_WIDTH
                         Sample width of recorded audio in bytes (e.g., 2)
   --channels CHANNELS   Number of channels in recorded audio (e.g., 1)
+  --output-site-id OUTPUT_SITE_ID
+                        If set, output audio data to a different site id
+  --udp-audio-host UDP_AUDIO_HOST
+                        Host for UDP audio (default: 127.0.0.1)
+  --udp-audio-port UDP_AUDIO_PORT
+                        Send raw audio to UDP port outside ASR listening
   --host HOST           MQTT host (default: localhost)
   --port PORT           MQTT port (default: 1883)
-  --siteId SITEID       Hermes siteId of this server
+  --username USERNAME   MQTT username
+  --password PASSWORD   MQTT password
+  --site-id SITE_ID     Hermes site id(s) to listen for (default: all)
   --debug               Print DEBUG messages to the console
+  --log-format LOG_FORMAT
+                        Python logger format
 ```
