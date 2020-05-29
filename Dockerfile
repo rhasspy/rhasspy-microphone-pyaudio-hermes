@@ -10,9 +10,6 @@ RUN apt-get update && \
 ENV APP_DIR=/usr/lib/rhasspy-microphone-pyaudio-hermes
 ENV BUILD_DIR=/build
 
-# Directory of prebuilt tools
-COPY download/ ${BUILD_DIR}/download/
-
 # Copy source
 COPY rhasspymicrophone_pyaudio_hermes/ ${BUILD_DIR}/rhasspymicrophone_pyaudio_hermes/
 
