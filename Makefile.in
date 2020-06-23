@@ -126,11 +126,20 @@ distclean:
 dist:
 	"$(PYTHON)" setup.py sdist
 
-# Use the setup.py check command
-check:
-	"$(PYTHON)" setup.py check
-
 # setup.py might complain if a directory doesn't exist so just in case, make the directory
 # here
 installdirs:
 	$(MKDIR_P) "$(DESTDIR)$(prefix)"
+
+# -----------------------------------------------------------------------------
+
+.PHONY: check reformat test
+
+check:
+	scripts/check-code.sh
+
+reformat:
+	scripts/format-code.sh
+
+test:
+	scripts/check-code.sh

@@ -16,7 +16,6 @@ python_name="$(echo "${dir_name}" | sed -e 's/-//' | sed -e 's/-/_/g')"
 python_files=(
     "${src_dir}/${python_name}"/*.py
     "${src_dir}/setup.py"
-    "${src_dir}/__main__.py"
 )
 
 # -----------------------------------------------------------------------------

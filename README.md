@@ -5,43 +5,31 @@
 
 Records audio from [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) and publishes WAV chunks according to the [Hermes protocol](https://docs.snips.ai/reference/hermes).
 
-## Running With Docker
+## Requirements
+
+* Python 3.7
+
+## Installation
 
 ```bash
-$ docker run -it rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION> <ARGS>
-```
-
-## Building From Source
-
-Clone the repository and create the virtual environment:
-
-```bash
-$ git clone https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes.git
+$ git clone https://github.com/rhasspy/rhasspy-microphone-pyaudio-hermes
 $ cd rhasspy-microphone-pyaudio-hermes
-$ ./configure --enable-in-place
+$ ./configure
 $ make
 $ make install
 ```
 
-Run the `rhasspy-microphone-pyaudio-hermes` script to access the command-line interface:
+## Deployment
 
 ```bash
-$ ./rhasspy-microphone-pyaudio-hermes --help
+$ make dist
 ```
 
-## Building the Docker Image
-
-Run `scripts/build-docker.sh` with a local docker registry:
+## Running
 
 ```bash
-$ DOCKER_REGISTRY=myregistry:12345 scripts/build-docker.sh
+$ bin/rhasspy-microphone-pyaudio-hermes <ARGS>
 ```
-
-Requires [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/). Set `PLATFORMS` environment to only build for specific platforms (e.g., `linux/amd64`).
-
-This will create a Docker image tagged `rhasspy/rhasspy-microphone-pyaudio-hermes:<VERSION>` where `VERSION` comes from the file of the same name in the source root directory.
-
-NOTE: If you add things to the Docker image, make sure to whitelist them in `.dockerignore`.
 
 ## Command-Line Options
 
@@ -56,7 +44,13 @@ usage: rhasspy-microphone-pyaudio-hermes [-h] [--list-devices]
                                          [--udp-audio-port UDP_AUDIO_PORT]
                                          [--host HOST] [--port PORT]
                                          [--username USERNAME]
-                                         [--password PASSWORD]
+                                         [--password PASSWORD] [--tls]
+                                         [--tls-ca-certs TLS_CA_CERTS]
+                                         [--tls-certfile TLS_CERTFILE]
+                                         [--tls-keyfile TLS_KEYFILE]
+                                         [--tls-cert-reqs {CERT_REQUIRED,CERT_OPTIONAL,CERT_NONE}]
+                                         [--tls-version TLS_VERSION]
+                                         [--tls-ciphers TLS_CIPHERS]
                                          [--site-id SITE_ID] [--debug]
                                          [--log-format LOG_FORMAT]
 
@@ -80,6 +74,20 @@ optional arguments:
   --port PORT           MQTT port (default: 1883)
   --username USERNAME   MQTT username
   --password PASSWORD   MQTT password
+  --tls                 Enable MQTT TLS
+  --tls-ca-certs TLS_CA_CERTS
+                        MQTT TLS Certificate Authority certificate files
+  --tls-certfile TLS_CERTFILE
+                        MQTT TLS certificate file (PEM)
+  --tls-keyfile TLS_KEYFILE
+                        MQTT TLS key file (PEM)
+  --tls-cert-reqs {CERT_REQUIRED,CERT_OPTIONAL,CERT_NONE}
+                        MQTT TLS certificate requirements (default:
+                        CERT_REQUIRED)
+  --tls-version TLS_VERSION
+                        MQTT TLS version (default: highest)
+  --tls-ciphers TLS_CIPHERS
+                        MQTT TLS ciphers to use
   --site-id SITE_ID     Hermes site id(s) to listen for (default: all)
   --debug               Print DEBUG messages to the console
   --log-format LOG_FORMAT
