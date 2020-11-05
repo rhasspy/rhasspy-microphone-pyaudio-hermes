@@ -45,6 +45,12 @@ def main():
         type=int,
         help="Send raw audio to UDP port outside ASR listening",
     )
+    parser.add_argument(
+        "--frames-per-buffer",
+        type=int,
+        default=1024,
+        help="Number of audio frames to read from microphone at at time (default: 1024)",
+    )
 
     hermes_cli.add_hermes_args(parser)
     args = parser.parse_args()
@@ -78,6 +84,7 @@ def main():
         output_site_id=args.output_site_id,
         udp_audio_host=args.udp_audio_host,
         udp_audio_port=args.udp_audio_port,
+        frames_per_buffer=args.frames_per_buffer,
     )
 
     _LOGGER.debug("Connecting to %s:%s", args.host, args.port)

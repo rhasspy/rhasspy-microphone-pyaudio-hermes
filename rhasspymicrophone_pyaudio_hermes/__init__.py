@@ -38,7 +38,7 @@ class MicrophoneHermesMqtt(HermesClient):
         sample_width: int,
         channels: int,
         device_index: typing.Optional[int] = None,
-        chunk_size: int = 2048,
+        frames_per_buffer: int = 1024,
         site_ids: typing.Optional[typing.List[str]] = None,
         output_site_id: typing.Optional[str] = None,
         udp_audio_host: str = "127.0.0.1",
@@ -60,7 +60,7 @@ class MicrophoneHermesMqtt(HermesClient):
         self.sample_width = sample_width
         self.channels = channels
         self.device_index = device_index
-        self.frames_per_buffer = chunk_size // sample_width
+        self.frames_per_buffer = frames_per_buffer
         self.output_site_id = output_site_id or self.site_id
 
         self.udp_audio_host = udp_audio_host
@@ -102,31 +102,32 @@ class MicrophoneHermesMqtt(HermesClient):
         try:
             audio = pyaudio.PyAudio()
 
+            def callback(in_data, frame_count, time_info, status):
+                if in_data:
+                    self.chunk_queue.put(in_data)
+
+                return (None, pyaudio.paContinue)
+
             # Open device
             mic = audio.open(
                 input_device_index=self.device_index,
                 channels=self.channels,
                 format=audio.get_format_from_width(self.sample_width),
                 rate=self.sample_rate,
+                frames_per_buffer=self.frames_per_buffer,
                 input=True,
+                stream_callback=callback,
             )
 
             assert mic is not None
             mic.start_stream()
             _LOGGER.debug("Recording audio")
 
-            try:
-                # Read frames and publish as MQTT WAV chunks
-                while True:
-                    chunk = mic.read(self.frames_per_buffer)
-                    if chunk:
-                        self.chunk_queue.put(chunk)
-                    else:
-                        # Avoid 100% CPU
-                        time.sleep(0.01)
-            finally:
-                mic.stop_stream()
-                audio.terminate()
+            while mic.is_active():
+                time.sleep(0.1)
+
+            mic.stop_stream()
+            audio.terminate()
 
         except Exception as e:
             _LOGGER.exception("record")
