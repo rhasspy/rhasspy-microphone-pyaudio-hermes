@@ -292,7 +292,7 @@ class MicrophoneHermesMqtt(HermesClient):
             # probably actually audio
             return debiased_energy > 30
         except Exception:
-            _LOGGER.exception("get_microphone_working ({device_name})")
+            _LOGGER.exception(f"get_microphone_working ({device_name})")
             pass
 
         return False
